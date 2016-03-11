@@ -14,45 +14,37 @@
 #define BS 8
 #define LF 10
 
-void InitPIO(void);
-void InitPWMController_CLKA(void);
-void InitPWMController_MCLK(void);
+void init_pio(void);
+void init_pwm_controller(void);
+void disable_watch_dog();
 
-void SetPeriod(uint32_t chan, uint16_t period);
-void SetDuty(uint32_t chan, uint16_t duty);
+void set_pwm_period(uint32_t chan, uint16_t period);
+void set_pwm_duty(uint32_t chan, uint16_t duty);
 
-/**
- * \brief Application entry point.
- *
- * \return Unused (ANSI-C compatibility).
- */
 int main(void)
 {
-  /* Initialize the SAM system */
+  SystemInit(); // SAM initialize
 
-  SystemInit();
-
-  InitPIO();
-//  InitPWMController_CLKA();
-  InitPWMController_MCLK();
+  disable_watch_dog();
+  init_pio();
+  init_pwm_controller();
 
   while (1)
   {
-    serial_demo();
-    SetDuty(CHAN, 16);
-    PutChar(25);
-    for (int i = 0; i < 100000000; i++) {};
-    SetDuty(CHAN, 48);
-    PutChar(75);
-    for (int i = 0; i < 100000000; i++) {};
-    SetDuty(CHAN, 32);
-    PutChar(50);
+    set_pwm_duty(CHAN, 32);
+    for (int i = 0; i < 100000000000; i++) {};
+    set_pwm_duty(CHAN, 48);
+    for (int i = 0; i < 100000000000; i++) {};
+    set_pwm_duty(CHAN, 32);
   }
 }
 
-void init_
+void disable_watch_dog()
+{
+  WDT->WDT_MR = WDT_MR_WDDIS;
+}
 
-void InitPIO()
+void init_pio()
 {
   //Because we are using PORTC.PIN23 in peripheral B mode
   //  we need to enable the clock for that line.
@@ -70,30 +62,7 @@ void InitPIO()
   PIOC->PIO_PUDR = PIO_PC23;
 }
 
-void InitPWMController_CLKA()
-{
-  //Enable the PWM clock (36)
-  PMC->PMC_PCER1 = _BV((ID_PWM - 32));
-
-  //Configure clock
-  //Calculating the frequency (PREA x CPRD X DIVA) / MCK
-  // freq = (256 X 2) / 84000000 = 164063.5Hz
-  PWM->PWM_CLK = 2 | (8 << 8);
-
-  //Channel Prescaler - Use ClockA as configured in PWM_CLK
-  PWM->PWM_CH_NUM[CHAN].PWM_CMR = PWM_CMR_CPRE_CLKA;
-
-  //Final frequency = 164063.5 / 255 = 643Hz
-  SetPeriod(CHAN, 255);
-
-  //Duty cycle = ratio of Period to Duty (Duty / Period) * 100 = 50%
-  SetDuty(CHAN, 128);
-
-  //Enable channel
-  PWM->PWM_ENA = _BV(CHAN);
-}
-
-void InitPWMController_MCLK()
+void init_pwm_controller()
 {
   //Enable the PWM clock (36)
   PMC->PMC_PCER1 = _BV((ID_PWM - 32));
@@ -103,15 +72,15 @@ void InitPWMController_MCLK()
   PWM->PWM_CH_NUM[CHAN].PWM_CMR = PWM_CMR_CPRE_MCK_DIV_16;
 
   //Final frequency = 5250000 / 400 = 13125Hz
-  SetPeriod(CHAN, 64);
+  set_pwm_period(CHAN, 64);
 
   //Duty cycle = (128 / 400) * 100 = 32%
-  SetDuty(CHAN, 32);
+  set_pwm_duty(CHAN, 32);
 
   PWM->PWM_ENA = _BV(CHAN);
 }
 
-void SetPeriod(uint32_t chan, uint16_t period)
+void set_pwm_period(uint32_t chan, uint16_t period)
 {
   //If the channel is disabled then we can write directly to the register
   //  else if enabled we write to the update register which acts as a double buffer
@@ -121,7 +90,7 @@ void SetPeriod(uint32_t chan, uint16_t period)
     PWM->PWM_CH_NUM[CHAN].PWM_CPRDUPD = period;
 }
 
-void SetDuty(uint32_t chan, uint16_t duty)
+void set_pwm_duty(uint32_t chan, uint16_t duty)
 {
   //If the channel is disabled then we can write directly to the register
   //  else if enabled we write to the update register which acts as a double buffer
@@ -129,15 +98,6 @@ void SetDuty(uint32_t chan, uint16_t duty)
     PWM->PWM_CH_NUM[chan].PWM_CDTY = duty;
   else
     PWM->PWM_CH_NUM[CHAN].PWM_CDTYUPD = duty;
-}
-
-
-void PutChar(const uint8_t c)
-{
-  // Check if the transmitter is ready
-  while (!(UART->UART_SR & UART_SR_TXRDY)) {}
-  // Send the character
-  UART->UART_THR = c;
 }
 
 
