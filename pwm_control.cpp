@@ -1,10 +1,12 @@
 #include "pwm_control.h"
 
+#define _BIT(bit) (0x1u << bit)
+
 void init_pio()
 {
   //Because we are using PORTC.PIN23 in peripheral B mode
   //  we need to enable the clock for that line.
-  PMC->PMC_PCER0 = 0x1 << ID_PIOC;
+  PMC->PMC_PCER0 = _BIT(ID_PIOC);
 
   //Disable PIO Control PC#
   PIOC->PIO_PDR = PIO_PC2;
@@ -50,7 +52,7 @@ void init_pio()
 void init_pwm_controller()
 {
   //Enable the PWM clock (36)
-  PMC->PMC_PCER1 = 0x1 << (ID_PWM - 32);
+  PMC->PMC_PCER1 = _BIT((ID_PWM - 32));
 
   //Channel Prescaler - Use ClockA as configured in PWM_CLK
   //Preliminary frequency = 84000000 / 16 = 5250000Hz
@@ -63,7 +65,7 @@ void init_pwm_controller()
   PWM->PWM_CH_NUM[6].PWM_CMR = PWM_CMR_CPRE_MCK_DIV_16;
   PWM->PWM_CH_NUM[7].PWM_CMR = PWM_CMR_CPRE_MCK_DIV_16;
 
-  //Final frequency = 5250000 / 256 = 20kHz
+  //Final frequency = 5250000 / 256 = 20.507kHz
   set_pwm_period(0, 256);
   set_pwm_period(1, 256);
   set_pwm_period(2, 256);
@@ -90,7 +92,7 @@ void set_pwm_period(uint32_t chan, uint16_t period)
 {
   //If the channel is disabled then we can write directly to the register
   //  else if enabled we write to the update register which acts as a double buffer
-  if ((PWM->PWM_SR & (0x1 << chan)) == 0)
+  if ((PWM->PWM_SR & _BIT(chan)) == 0)
     PWM->PWM_CH_NUM[chan].PWM_CPRD = period;
   else
     PWM->PWM_CH_NUM[chan].PWM_CPRDUPD = period;
@@ -100,7 +102,7 @@ void set_pwm_duty(uint32_t chan, uint16_t duty)
 {
   //If the channel is disabled then we can write directly to the register
   //  else if enabled we write to the update register which acts as a double buffer
-  if ((PWM->PWM_SR & (0x1 << chan)) == 0)
+  if ((PWM->PWM_SR & _BIT(chan)) == 0)
     PWM->PWM_CH_NUM[chan].PWM_CDTY = duty;
   else
     PWM->PWM_CH_NUM[chan].PWM_CDTYUPD = duty;
