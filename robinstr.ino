@@ -4,14 +4,14 @@
 
 int main()
 {
-	// SystemInit();
-	init();
-	Serial.begin(9600);
+    // SystemInit();
+    init();
+    Serial.begin(9600);
 
-	init_pio();
-	init_pwm_controller();
-	fft_test();
-	while (1)
-	{
-	}
+    init_pio();
+    init_pwm_controller();
+    //fft_test();
+    while (1)
+    {
+    }
 }
