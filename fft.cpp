@@ -4,8 +4,6 @@
 #define ARM_MATH_CM3
 #include "arm_math.h"
 
-#define TEST_LENGTH_SAMPLES 1024
-
 /* -------------------------------------------------------------------
 * External Input and Output buffer Declarations for FFT Bin Example
 * ------------------------------------------------------------------- */
