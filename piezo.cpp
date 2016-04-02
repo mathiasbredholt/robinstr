@@ -1,3 +1,4 @@
+#include "piezo.h"
 #include "Arduino.h"
 #define ARM_MATH_CM3
 #include "arm_math.h"
@@ -10,6 +11,8 @@
 
 volatile q15_t buffer[BUFFER_SIZE];
 volatile int buffer_index = 0;
+
+bool PIEZO_INTERRUPT;
 
 void init_piezo()
 {

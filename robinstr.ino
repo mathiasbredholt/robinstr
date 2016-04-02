@@ -2,6 +2,7 @@
 #include "fft.h"
 #include "piezo.h"
 
+extern bool PIEZO_INTERRUPT;
 
 int main()
 {
