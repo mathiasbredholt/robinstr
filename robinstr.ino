@@ -14,9 +14,12 @@ int main()
     init();
     Serial.begin(9600);
 
-    init_pio();
+    Serial.println("Welcome to ROBINSTR v0.1");
+
     init_piezo();
     init_pwm_controller();
+
+    int now = millis();
 
     while (1)
     {
@@ -25,6 +28,13 @@ int main()
             PIEZO_INTERRUPT = false;
 
             do_fft((q15_t*) buffer);
+            // find_peaks
+            // calc_pid
         }
+
+        // if ((millis() - now) & 0xFF)
+        // {
+        //     // Serial.println(PIEZO_INTERRUPT);
+        // }
     }
 }

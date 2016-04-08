@@ -24,9 +24,11 @@ void do_fft(q15_t *input_buffer)
 	arm_abs_q15(output_complex, output_mag, FFT_SIZE);
 
 
-	// for (int i = 0; i < FFT_SIZE; i++)
-	// {
-	// 	Serial.write((char) output_mag[i] << 8);
-	// 	Serial.write((char) output_mag[i] & 0xFF);
-	// }
+	for (int i = 0; i < FFT_SIZE; i++)
+	{
+		// Serial.println("f");
+		Serial.println(output_mag[i]);
+		// Serial.write((char) output_mag[i] << 8);
+		// Serial.write((char) output_mag[i] & 0xFF);
+	}
 }

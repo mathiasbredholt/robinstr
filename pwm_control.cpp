@@ -2,7 +2,7 @@
 
 #define _BIT(bit) (0x1u << bit)
 
-void init_pio()
+void init_pwm_controller()
 {
   //Because we are using PORTC.PIN23 in peripheral B mode
   //  we need to enable the clock for that line.
@@ -47,10 +47,7 @@ void init_pio()
   PIOC->PIO_PUDR |= PIO_PC22;
   PIOC->PIO_PUDR |= PIO_PC23;
   PIOC->PIO_PUDR |= PIO_PC24;
-}
 
-void init_pwm_controller()
-{
   //Enable the PWM clock (36)
   PMC->PMC_PCER1 = _BIT((ID_PWM - 32));
 
