@@ -1,5 +1,6 @@
 #include "pwm_control.h"
 #include "fft.h"
+#include <PID_v1.h>
 
 
 int main()
@@ -10,7 +11,14 @@ int main()
 
 	init_pio();
 	init_pwm_controller();
+	
+	//play tone 
+	//choose string
+
 	fft_test();
+	PID(note, )
+	//find_peaks
+
 	while (1)
 	{
 	}

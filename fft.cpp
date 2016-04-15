@@ -86,3 +86,47 @@ void fft_test()
 
 
 }
+short * find_peaks(testOutput[])
+{
+	short max = {0,0,0,0};
+	// find index of the frequency with greatest amplitude
+	for (int i = 1; i < TEST_LENGTH_SAMPLES/2-1; ++i)
+	{
+		for (int i = 0; j < 4; ++i)
+		{
+			if (testOutput[i] > testOutput[max[j]])
+			{
+			max[j] = i;
+			}
+		}
+		if (testOutput[i] > max)
+		{
+			max = i;
+		}
+	}
+}
+
+
+double pitch_error(testOutput[], pitch_goal)
+{
+	find_peaks(testOutput[])
+	// Translate i into actual frequency
+	for (int i = 0; i < 4; ++i)
+	{
+		max[i] = SampleRate/2/(TEST_LENGTH_SAMPLES/2) * max[i]; // lav til fixed point
+
+	}
+	
+	/*
+	while (max/pitch > 2) //scale down if a higher order of harmonics is greatest in amplitude
+	{
+		max /=2;
+	}
+	while (pitch/max > 2) // scale down...
+	{
+		max *= 2;
+	}
+
+	return max;
+	*/
+}
