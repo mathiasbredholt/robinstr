@@ -8,10 +8,7 @@ int main()
 
     Serial.println("Welcome to ROBINSTR v0.1");
 
-    init_piezo();
-    // init_pwm_controller();
-
-    int now = millis();
+    init_pwm_controller();
 
     while (1)
     {
