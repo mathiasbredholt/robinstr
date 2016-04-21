@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include "pwm_control.h"
 
+int strings = {40,47,54,61} // init string tunings to E, B, F#, Db
+
 int main()
 {
     init();
@@ -12,6 +14,7 @@ int main()
 
     while (1)
     {
+    	message = readmidi
 
     }
 }
