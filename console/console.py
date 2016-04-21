@@ -85,7 +85,6 @@ def main(stdscr):
 
     target = 1000.0
     current = 0.0
-    step = 0.1
 
     pid.init(pid_dict, KP, KI, KD)
 
@@ -103,11 +102,11 @@ def main(stdscr):
 
     while runtime_settings["running"]:
         # get_input(stdscr, runtime_settings)
-        pid.update(pid_dict, target, current, step)
+        pid.update(pid_dict, target, current)
         # log(stdscr, "asdf")
         current = pid_dict["output"]
         log(stdscr, current)
-        time.sleep(step)
+        time.sleep(0.1)
 
 
 #     # curses.noecho()
