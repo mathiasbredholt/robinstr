@@ -3,6 +3,7 @@ import curses
 import art
 import pid
 import time
+import loadcell
 
 MENU_ITEMS = 2
 
@@ -81,6 +82,18 @@ def log(stdscr, string):
 
 
 def main(stdscr):
+    loadcell.init_phidget()
+
+    while 1:
+        summ = 0
+        buffersize = 128
+        for i in range(0,buffersize):
+            summ = summ + bridge.getBridgeValue(2)
+        mean_value = summ/buffersize
+        
+        print("{:.2}".format(summ/buffersize))
+
+
     pid_dict = {}
 
     target = 1000.0

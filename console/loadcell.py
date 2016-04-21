@@ -127,19 +127,7 @@ def init_phidget():
 	    print("Exiting....")
 	    exit(1)
 
-
-init_phidget()
-
-
-while 1:
-	summ = 0
-	buffersize = 128
-	for i in range(0,buffersize):
-		summ = summ + bridge.getBridgeValue(2)
-	mean_value = summ/buffersize
-	
-	print("{:.2}".format(summ/buffersize))
-
+def gå^yt	
 
 
 	#----------disable reading --------------
