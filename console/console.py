@@ -6,6 +6,10 @@ import time
 
 MENU_ITEMS = 2
 
+KP = 0.1
+KI = 0.1
+KD = 0.005
+
 
 def get_input(stdscr, runtime_settings):
     focus = runtime_settings["focus"]
@@ -79,10 +83,11 @@ def log(stdscr, string):
 def main(stdscr):
     pid_dict = {}
 
-    target = 10.0
+    target = 1000.0
     current = 0.0
+    step = 0.1
 
-    pid.init(pid_dict, 1, 0.1, 1)
+    pid.init(pid_dict, KP, KI, KD)
 
     runtime_settings = {
         "running": True,
@@ -98,10 +103,11 @@ def main(stdscr):
 
     while runtime_settings["running"]:
         # get_input(stdscr, runtime_settings)
-        pid.update(pid_dict, target, current)
+        pid.update(pid_dict, target, current, step)
         # log(stdscr, "asdf")
-        log(stdscr, pid_dict["output"])
-        time.sleep(0.1)
+        current = pid_dict["output"]
+        log(stdscr, current)
+        time.sleep(step)
 
 
 #     # curses.noecho()
