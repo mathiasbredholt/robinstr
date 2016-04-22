@@ -21,6 +21,7 @@ from Phidgets.Phidget import PhidgetLogLevel
 import gfx
 
 WAIT_TIME = 2000
+BUFFER_SIZE = 64
 
 # Create a load cell object
 try:
@@ -130,7 +131,10 @@ def init_phidget():
 
     #---------enable reading------------------
         gfx.log("Enable the Bridge input for reading data...")
+        bridge.setEnabled(0, True)
+        bridge.setEnabled(1, True)
         bridge.setEnabled(2, True)
+        bridge.setEnabled(3, True)
         sleep(2)
 
     except PhidgetException as e:
@@ -147,14 +151,11 @@ def init_phidget():
     return True
 
 
-def get_value(main_d):
-    while main_d["running"]:
-        summ = 0
-        buffersize = 64
-        for i in range(0, buffersize):
-            summ = summ + bridge.getBridgeValue(2)
-        main_d["pid"][0]["current"] = summ / buffersize
-        gfx.log(main_d["pid1"]["current"])
+def get_value(index):
+    summ = 0
+    for i in range(0, BUFFER_SIZE):
+        summ = summ + bridge.getBridgeValue(index)
+    return summ / BUFFER_SIZE
 
     #----------disable reading --------------
     #gfx.log("Press Enter to quit....")

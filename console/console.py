@@ -14,20 +14,9 @@ KP = 0.1
 KI = 0.01
 KD = 0.005
 
-
-def focus_changed(main_d):
-    draw_menu(main_d)
-
-
-def draw_menu(main_d):
-    focus = main_d["focus"]
-
-    gfx.draw_art(art.title, 0, 0, 1)
-    gfx.draw_art(art.connect, 0, 6, 2 if focus == 0 else 1)
-    gfx.draw_art(art.demo, 0, 10, 2 if focus == 1 else 1)
-    gfx.draw_art(art.test, 0, 14, 2 if focus == 2 else 1)
-    gfx.draw_art(art.quit, 0, 18, 2 if focus == 3 else 1)
-    gfx.draw_art(art.note, 48, 10, 1)
+# ---------------
+# Music interface
+# ---------------
 
 
 def play_demo(main_d):
@@ -54,42 +43,128 @@ def play_note(main_d, note, vel):
     arduino.strike(index, vel)
 
 
+# ---------------
+# Peripherals
+# ---------------
+
+def connect_to_arduino(main_d):
+    main_d["arduino"] = arduino.init()
+
+
 def connect_to_loadcell(main_d):
-    if loadcell.init_phidget():
-        threading.Thread(
-            target=loadcell.get_value, args=(main_d,)).start()
+    loadcell.init_phidget()
 
 
-def enter_key_triggered(main_d):
-    focus = main_d["focus"]
+# ----------------
+# Controller setup
+# ----------------
 
-    if focus == 0:  # Connect
-        connect_to_loadcell(main_d)
-        # main_d["arduino"] = arduino.reconnect()
-        threading.Thread(
-            target=run_controllers, args=(main_d,)).start()
-    elif focus == 1:  # Play demo
-        demo = threading.Thread(target=play_demo, args=(main_d,)).start()
-    elif focus == 2:  # Test
-        pass
-    elif focus == 3:  # Quit
-        main_d["running"] = False
+
+def init_pid_controllers(main_d):
+    main_d["pid"] = [{}, {}, {}, {}]
+
+    for pid_n in main_d["pid"]:
+        pid.init(pid_n, KP, KI, KD)
 
 
 def run_controllers(main_d):
     while main_d["running"]:
-        pid.update(main_d["pid"][0])
-        pid.update(main_d["pid"][1])
-        pid.update(main_d["pid"][2])
-        pid.update(main_d["pid"][3])
+        for i in range(0, 4):
+            main_d["pid"][i]["current"] = loadcell.get_value(i)
 
-        arduino.set_pwm(main_d["arduino"], 0, main_d["pid"][0]["output"])
-        arduino.set_pwm(main_d["arduino"], 1, main_d["pid"][1]["output"])
-        arduino.set_pwm(main_d["arduino"], 2, main_d["pid"][2]["output"])
-        arduino.set_pwm(main_d["arduino"], 3, main_d["pid"][3]["output"])
+            pid.update(main_d["pid"][i])
+
+            arduino.set_pwm(main_d["arduino"], i, main_d["pid"][i]["output"])
+
+        gfx.log(main_d["pid"][0]["current"])
 
         time.sleep(pid.DELTA_TIME)
 
+
+# ---------------
+# User interface
+# ---------------
+
+
+def draw_menu(main_d):
+    focus = main_d["focus"]
+
+    gfx.draw_art(art.title, 0, 0, 1)
+    gfx.draw_art(art.connect, 0, 6, 2 if focus == 0 else 1)
+    gfx.draw_art(art.demo, 0, 10, 2 if focus == 1 else 1)
+    gfx.draw_art(art.test, 0, 14, 2 if focus == 2 else 1)
+    gfx.draw_art(art.quit, 0, 18, 2 if focus == 3 else 1)
+    gfx.draw_art(art.note, 48, 10, 1)
+
+
+# -----------------
+# Keyboard handling
+# -----------------
+
+def handle_key_event(main_d, key):
+    focus = main_d["focus"]
+    if key == ord("q"):
+        running = False
+
+        main_d["running"] = running
+
+    elif key == curses.KEY_UP:
+        focus = focus - 1 if focus > 0 else MENU_ITEMS - 1
+
+        main_d["focus"] = focus
+        draw_menu(main_d)
+
+    elif key == curses.KEY_DOWN:
+        focus = focus + 1 if focus < MENU_ITEMS - 1 else 0
+
+        main_d["focus"] = focus
+        draw_menu(main_d)
+
+    elif key == 10:
+        # Enter key hit, trigger events
+
+        focus = main_d["focus"]
+
+        if focus == 0:  # Connect
+            connect_triggered(main_d)
+
+        elif focus == 1:  # Play demo
+            play_demo_triggered(main_d)
+
+        elif focus == 2:  # Test
+            test_triggered(main_d)
+
+        elif focus == 3:  # Quit
+            quit_triggered(main_d)
+
+
+# -------------------
+# Menu event handlers
+# -------------------
+
+def connect_triggered(main_d):
+    connect_to_arduino(main_d)
+    connect_to_loadcell(main_d)
+
+    threading.Thread(
+        target=run_controllers, args=(main_d,)).start()
+
+
+def play_demo_triggered(main_d):
+    demo = threading.Thread(target=play_demo, args=(main_d,)).start()
+
+
+def test_triggered(main_d):
+    pass
+
+
+def quit_triggered(main_d):
+    main_d["running"] = False
+
+
+# -------------------
+# Main application
+# -------------------
 
 def main(stdscr):
     gfx.set_screen(stdscr)
@@ -98,43 +173,20 @@ def main(stdscr):
     gfx.log("Welcome to ROBINSTR.")
     gfx.log("Press 'q' to quit.")
 
-    loadcell_values = [0, 0, 0, 0]
-
     main_d = {
         "running": True,
-        "focus": 0,
-        "loadcell_values": [0, 0, 0, 0],
-        "arduino": arduino.init(),
-        "pid": [{}, {}, {}, {}],
+        "focus": 0
     }
 
-    pid.init(main_d["pid"][0], KP, KI, KD)
-    pid.init(main_d["pid"][1], KP, KI, KD)
-    pid.init(main_d["pid"][2], KP, KI, KD)
-    pid.init(main_d["pid"][3], KP, KI, KD)
-
     draw_menu(main_d)
+
+    init_pid_controllers(main_d)
 
     while main_d["running"]:
         focus = main_d["focus"]
         running = main_d["running"]
 
-        event = stdscr.getch()
-        if event == ord("q"):
-            running = False
-
-            main_d["running"] = running
-        elif event == curses.KEY_UP:
-            focus = focus - 1 if focus > 0 else MENU_ITEMS - 1
-
-            main_d["focus"] = focus
-            focus_changed(main_d)
-        elif event == curses.KEY_DOWN:
-            focus = focus + 1 if focus < MENU_ITEMS - 1 else 0
-
-            main_d["focus"] = focus
-            focus_changed(main_d)
-        elif event == 10:
-            enter_key_triggered(main_d)
+        key = stdscr.getch()
+        handle_key_event(main_d, key)
 
 curses.wrapper(main)
