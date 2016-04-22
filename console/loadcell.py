@@ -6,159 +6,184 @@ This work is licensed under the Creative Commons Attribution 2.5 Canada License.
 To view a copy of this license, visit http://creativecommons.org/licenses/by/2.5/ca/
 """
 
-__author__="Adam Stelmack"
-__version__="2.1.8"
-__date__ ="14-Jan-2011 2:29:14 PM"
+__author__ = "Adam Stelmack"
+__version__ = "2.1.8"
+__date__ = "14-Jan-2011 2:29:14 PM"
 
 
-#Basic imports
+# Basic imports
 import sys
 from time import sleep
-#Phidget specific imports
+# Phidget specific imports
 from Phidgets.PhidgetException import PhidgetException
 from Phidgets.Devices.Bridge import Bridge, BridgeGain
 from Phidgets.Phidget import PhidgetLogLevel
+import gfx
 
-#Create a load cell object
+WAIT_TIME = 2000
+
+# Create a load cell object
 try:
     bridge = Bridge()
 except RuntimeError as e:
-    print("Runtime Exception: %s" % e.details)
-    print("Exiting....")
+    gfx.log("Runtime Exception: %s" % e.details)
+    gfx.log("Exiting....")
     exit(1)
 
-#Information Display Function
-def displayDeviceInfo():
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- Attached -|-              Type              -|- Serial No. -|-  Version -|")
-    print("|------------|----------------------------------|--------------|------------|")
-    print("|- %8s -|- %30s -|- %10d -|- %8d -|" % (bridge.isAttached(), bridge.getDeviceName(), bridge.getSerialNum(), bridge.getDeviceVersion()))
-    print("|------------|----------------------------------|--------------|------------|")
-    print("Number of bridge inputs: %i" % (bridge.getInputCount()))
-    print("Data Rate Max: %d" % (bridge.getDataRateMax()))
-    print("Data Rate Min: %d" % (bridge.getDataRateMin()))
-    print("Input Value Max: %d" % (bridge.getBridgeMax(0)))
-    print("Input Value Min: %d" % (bridge.getBridgeMin(0)))
+# Information Display Function
 
-#Event Handler Callback Functions
+
+def displayDeviceInfo():
+    gfx.log(
+        "|------------|----------------------------------|--------------|------------|")
+    gfx.log(
+        "|- Attached -|-              Type              -|- Serial No. -|-  Version -|")
+    gfx.log(
+        "|------------|----------------------------------|--------------|------------|")
+    gfx.log("|- %8s -|- %30s -|- %10d -|- %8d -|" % (bridge.isAttached(),
+                                                     bridge.getDeviceName(), bridge.getSerialNum(), bridge.getDeviceVersion()))
+    gfx.log(
+        "|------------|----------------------------------|--------------|------------|")
+    gfx.log("Number of bridge inputs: %i" % (bridge.getInputCount()))
+    gfx.log("Data Rate Max: %d" % (bridge.getDataRateMax()))
+    gfx.log("Data Rate Min: %d" % (bridge.getDataRateMin()))
+    gfx.log("Input Value Max: %d" % (bridge.getBridgeMax(0)))
+    gfx.log("Input Value Min: %d" % (bridge.getBridgeMin(0)))
+
+# Event Handler Callback Functions
+
+
 def BridgeAttached(e):
     attached = e.device
-    print("Bridge %i Attached!" % (attached.getSerialNum()))
+    # gfx.log("Bridge %i Attached!" % (attached.getSerialNum()))
+
 
 def BridgeDetached(e):
     detached = e.device
-    print("Bridge %i Detached!" % (detached.getSerialNum()))
+    # gfx.log("Bridge %i Detached!" % (detached.getSerialNum()))
+
 
 def BridgeError(e):
     try:
         source = e.device
-        print("Bridge %i: Phidget Error %i: %s" % (source.getSerialNum(), e.eCode, e.description))
+        gfx.log("Bridge %i: Phidget Error %i: %s" %
+                (source.getSerialNum(), e.eCode, e.description))
     except PhidgetException as e:
-        print("Phidget Exception %i: %s" % (e.code, e.details))
+        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+
 
 def BridgeData(e):
     source = e.device
-    print("Bridge %i: Input %i: %f" % (source.getSerialNum(), e.index, e.value))
-    
+    gfx.log("Bridge %i: Input %i: %f" %
+            (source.getSerialNum(), e.index, e.value))
+
+
 def init_phidget():
-	try:
-		#logging example, uncomment to generate a log file
-	    #bridge.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
-		
-	    bridge.setOnAttachHandler(BridgeAttached)
-	    bridge.setOnDetachHandler(BridgeDetached)
-	    bridge.setOnErrorhandler(BridgeError)
-	    #bridge.setOnBridgeDataHandler(BridgeData)
-	except PhidgetException as e:
-	    print("Phidget Exception %i: %s" % (e.code, e.details))
-	    print("Exiting....")
-	    exit(1)
+    try:
+            # logging example, uncomment to generate a log file
+        #bridge.enableLogging(PhidgetLogLevel.PHIDGET_LOG_VERBOSE, "phidgetlog.log")
 
-	print("Opening phidget object....")
+        bridge.setOnAttachHandler(BridgeAttached)
+        bridge.setOnDetachHandler(BridgeDetached)
+        bridge.setOnErrorhandler(BridgeError)
+        # bridge.setOnBridgeDataHandler(BridgeData)
+    except PhidgetException as e:
+        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+        gfx.log("Exiting....")
+        return False
 
-	#----------Attach phidget----------------
-	try: 
-	    bridge.openPhidget()
-	except PhidgetException as e:
-	    print("Phidget Exception %i: %s" % (e.code, e.details))
-	    print("Exiting....")
-	    exit(1)
+    gfx.log("Opening phidget object....")
 
-	print("Waiting for attach....")
+    #----------Attach phidget----------------
+    try:
+        bridge.openPhidget()
+    except PhidgetException as e:
+        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+        return False
 
-	try:
-	    bridge.waitForAttach(10000)
-	except PhidgetException as e:
-	    print("Phidget Exception %i: %s" % (e.code, e.details))
-	    try:
-	        bridge.closePhidget()
-	    except PhidgetException as e:
-	        print("Phidget Exception %i: %s" % (e.code, e.details))
-	        print("Exiting....")
-	        exit(1)
-	    print("Exiting....")
-	    exit(1)
-	else:
-	    displayDeviceInfo()
+    gfx.log("Waiting for attach....")
 
-	#----------Set parameters-----------------
-	try:
-	    print("Set data rate to 8ms ...")
-	    bridge.setDataRate(8)
-	    sleep(2)
+    try:
+        bridge.waitForAttach(WAIT_TIME)
+    except PhidgetException as e:
+        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+        try:
+            bridge.closePhidget()
+        except PhidgetException as e:
+            gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+            # gfx.log("Exiting....")
+            return False
+        # gfx.log("Exiting....")
+        return False
+    else:
+        displayDeviceInfo()
 
-	    print("Set Gain to 8...")
-	    bridge.setGain(2, BridgeGain.PHIDGET_BRIDGE_GAIN_128)
-	    sleep(2)
+    #----------Set parameters-----------------
+    try:
+        gfx.log("Set data rate to 8ms ...")
+        bridge.setDataRate(8)
+        sleep(2)
 
-	#---------enable reading------------------
-	    print("Enable the Bridge input for reading data...")
-	    bridge.setEnabled(2, True)
-	    sleep(2)
+        gfx.log("Set Gain to 128...")
+        bridge.setGain(2, BridgeGain.PHIDGET_BRIDGE_GAIN_128)
+        sleep(2)
 
-	except PhidgetException as e:
-	    print("Phidget Exception %i: %s" % (e.code, e.details))
-	    try:
-	        bridge.closePhidget()
-	    except PhidgetException as e:
-	        print("Phidget Exception %i: %s" % (e.code, e.details))
-	        print("Exiting....")
-	        exit(1)
-	    print("Exiting....")
-	    exit(1)
+    #---------enable reading------------------
+        gfx.log("Enable the Bridge input for reading data...")
+        bridge.setEnabled(2, True)
+        sleep(2)
 
-def gå^yt	
+    except PhidgetException as e:
+        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+        try:
+            bridge.closePhidget()
+        except PhidgetException as e:
+            gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+            gfx.log("Exiting....")
+            return False
+        gfx.log("Exiting....")
+        return False
 
-
-	#----------disable reading --------------
-	#print("Press Enter to quit....")
-
-	#chr = sys.stdin.read(1)
-
-	#print("Closing...")
+    return True
 
 
-	#try:
-	#    print("Disable the Bridge input for reading data...")
-	#    bridge.setEnabled(0, False)
-	#    sleep(2)
-	#except PhidgetException as e:
-	#    print("Phidget Exception %i: %s" % (e.code, e.details))
-	#    try:
-	#        bridge.closePhidget()
-	#    except PhidgetException as e:
-	#        print("Phidget Exception %i: %s" % (e.code, e.details))
-	#        print("Exiting....")
-	#        exit(1)
-	#    print("Exiting....")
-	#    exit(1)
+def get_value(main_d):
+    while main_d["running"]:
+        summ = 0
+        buffersize = 64
+        for i in range(0, buffersize):
+            summ = summ + bridge.getBridgeValue(2)
+        main_d["pid"][0]["current"] = summ / buffersize
+        gfx.log(main_d["pid1"]["current"])
 
-	#try:
-	#    bridge.closePhidget()
-	#except PhidgetException as e:
-	#    print("Phidget Exception %i: %s" % (e.code, e.details))
-	#    print("Exiting....")
-	#    exit(1)
+    #----------disable reading --------------
+    #gfx.log("Press Enter to quit....")
 
-	#print("Done.")
-	#exit(0)
+    #chr = sys.stdin.read(1)
+
+    # gfx.log("Closing...")
+
+    # try:
+    #    gfx.log("Disable the Bridge input for reading data...")
+    #    bridge.setEnabled(0, False)
+    #    sleep(2)
+    # except PhidgetException as e:
+    #    gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+    #    try:
+    #        bridge.closePhidget()
+    #    except PhidgetException as e:
+    #        gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+    #        gfx.log("Exiting....")
+    #        exit(1)
+    #    gfx.log("Exiting....")
+    #    exit(1)
+
+    # try:
+    #    bridge.closePhidget()
+    # except PhidgetException as e:
+    #    gfx.log("Phidget Exception %i: %s" % (e.code, e.details))
+    #    gfx.log("Exiting....")
+    #    exit(1)
+
+    # gfx.log("Done.")
+    # exit(0)

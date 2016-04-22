@@ -1,140 +1,140 @@
-import serial
 import curses
 import art
 import pid
 import time
 import loadcell
+import gfx
+import threading
+import arduino
+import demo
 
-MENU_ITEMS = 2
+MENU_ITEMS = 4
 
 KP = 0.1
-KI = 0.1
+KI = 0.01
 KD = 0.005
 
 
-def get_input(stdscr, runtime_settings):
-    focus = runtime_settings["focus"]
-    running = runtime_settings["running"]
-
-    event = stdscr.getch()
-    if event == ord("q"):
-        running = False
-
-        runtime_settings["running"] = running
-    elif event == curses.KEY_UP:
-        focus = focus - 1 if focus > 0 else MENU_ITEMS - 1
-
-        runtime_settings["focus"] = focus
-        focus_changed(stdscr, runtime_settings)
-    elif event == curses.KEY_DOWN:
-        focus = focus + 1 if focus < MENU_ITEMS - 1 else 0
-
-        runtime_settings["focus"] = focus
-        focus_changed(stdscr, runtime_settings)
-    elif event == curses.KEY_ENTER:
-        running = False
-
-        runtime_settings["running"] = running
-
-    # def read_from_port(ser, stdscr):
-    #     while True:
-    #         data = ser.readline()
-    #         stdscr.addstr(10, 10, "asdfa")
+def focus_changed(main_d):
+    draw_menu(main_d)
 
 
-def focus_changed(stdscr, runtime_settings):
-    draw_menu(stdscr, runtime_settings)
+def draw_menu(main_d):
+    focus = main_d["focus"]
+
+    gfx.draw_art(art.title, 0, 0, 1)
+    gfx.draw_art(art.connect, 0, 6, 2 if focus == 0 else 1)
+    gfx.draw_art(art.demo, 0, 10, 2 if focus == 1 else 1)
+    gfx.draw_art(art.test, 0, 14, 2 if focus == 2 else 1)
+    gfx.draw_art(art.quit, 0, 18, 2 if focus == 3 else 1)
+    gfx.draw_art(art.note, 48, 10, 1)
 
 
-def draw_menu(stdscr, runtime_settings):
-    focus = runtime_settings["focus"]
-
-    draw_art(stdscr, art.title, 0, 0, 1)
-    draw_art(stdscr, art.demo, 0, 10, 2 if focus == 0 else 1)
-    draw_art(stdscr, art.test, 0, 14, 2 if focus == 1 else 1)
-
-    stdscr.refresh()
+def play_demo(main_d):
+    i = 0
+    while i < len(demo.notes) and main_d["running"]:
+        # arduino.play_note(main_d["arduino"], demo.notes[i], 127)
+        time.sleep(demo.intervals[i])
+        i += 1
 
 
-# COLORS:
-# 1: RED, BLACK
-# 2: BLACK, RED
-# 2: WHITE, BLACK
+def play_note(main_d, note, vel):
+    diff = 127
+    index = 0
+
+    # Determine which string to tune and strike
+    for i, target in enumerate(main_d["pid"]):
+        if abs(note - target) < diff:
+            diff = abs(note - target)
+            index = i
+
+    main_d["pid"][index]["target"] = note
+
+    # strike hammer
+    arduino.strike(index, vel)
 
 
-def init_colors():
-    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
-    curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_BLACK)
+def connect_to_loadcell(main_d):
+    if loadcell.init_phidget():
+        threading.Thread(
+            target=loadcell.get_value, args=(main_d,)).start()
 
 
-def draw_art(stdscr, input="", x=0, y=0, color=1):
-    for i in range(0, len(input)):
-        stdscr.addstr(i + y, x, input[i], curses.color_pair(color))
+def enter_key_triggered(main_d):
+    focus = main_d["focus"]
+
+    if focus == 0:  # Connect
+        connect_to_loadcell(main_d)
+        # main_d["arduino"] = arduino.reconnect()
+        threading.Thread(
+            target=run_controllers, args=(main_d,)).start()
+    elif focus == 1:  # Play demo
+        demo = threading.Thread(target=play_demo, args=(main_d,)).start()
+    elif focus == 2:  # Test
+        pass
+    elif focus == 3:  # Quit
+        main_d["running"] = False
 
 
-def log(stdscr, string):
-    stdscr.addstr(18, 0, str(string), curses.color_pair(3))
-    stdscr.refresh()
+def run_controllers(main_d):
+    while main_d["running"]:
+        pid.update(main_d["pid"][0])
+        pid.update(main_d["pid"][1])
+        pid.update(main_d["pid"][2])
+        pid.update(main_d["pid"][3])
 
+        arduino.set_pwm(main_d["arduino"], 0, main_d["pid"][0]["output"])
+        arduino.set_pwm(main_d["arduino"], 1, main_d["pid"][1]["output"])
+        arduino.set_pwm(main_d["arduino"], 2, main_d["pid"][2]["output"])
+        arduino.set_pwm(main_d["arduino"], 3, main_d["pid"][3]["output"])
 
-# def play_demo():
+        time.sleep(pid.DELTA_TIME)
 
 
 def main(stdscr):
-    loadcell.init_phidget()
+    gfx.set_screen(stdscr)
+    gfx.init_colors()
 
-    while 1:
-        summ = 0
-        buffersize = 128
-        for i in range(0,buffersize):
-            summ = summ + bridge.getBridgeValue(2)
-        mean_value = summ/buffersize
-        
-        print("{:.2}".format(summ/buffersize))
+    gfx.log("Welcome to ROBINSTR.")
+    gfx.log("Press 'q' to quit.")
 
+    loadcell_values = [0, 0, 0, 0]
 
-    pid_dict = {}
-
-    target = 1000.0
-    current = 0.0
-
-    pid.init(pid_dict, KP, KI, KD)
-
-    runtime_settings = {
+    main_d = {
         "running": True,
-        "focus": 0
+        "focus": 0,
+        "loadcell_values": [0, 0, 0, 0],
+        "arduino": arduino.init(),
+        "pid": [{}, {}, {}, {}],
     }
 
-    init_colors()
-    stdscr.clear()
+    pid.init(main_d["pid"][0], KP, KI, KD)
+    pid.init(main_d["pid"][1], KP, KI, KD)
+    pid.init(main_d["pid"][2], KP, KI, KD)
+    pid.init(main_d["pid"][3], KP, KI, KD)
 
-    curses.curs_set(False)
-    draw_menu(stdscr, runtime_settings)
-    stdscr.refresh()
+    draw_menu(main_d)
 
-    while runtime_settings["running"]:
-        # get_input(stdscr, runtime_settings)
-        pid.update(pid_dict, target, current)
-        # log(stdscr, "asdf")
-        current = pid_dict["output"]
-        log(stdscr, current)
-        time.sleep(0.1)
+    while main_d["running"]:
+        focus = main_d["focus"]
+        running = main_d["running"]
 
+        event = stdscr.getch()
+        if event == ord("q"):
+            running = False
 
-#     # curses.noecho()
-#     # stdscr.keypad(1)
-#     stdscr.addstr("Press 'q' to quit.\n\n")
-#     # thread1 = threading.Thread(target=get_input, args=(stdscr,))
-#     # thread1.start()
-#     stdscr.refresh()
-#     stdscr.getkey()
-    port = '/dev/tty.usbmodem1411'
-    baud = 31250
-    # serial_port = serial.Serial(port, baud)
-#     # thread2 = threading.Thread(target=read_from_port,
-#     #                            args=(serial_port, stdscr,))
-#     # thread2.start()
+            main_d["running"] = running
+        elif event == curses.KEY_UP:
+            focus = focus - 1 if focus > 0 else MENU_ITEMS - 1
 
+            main_d["focus"] = focus
+            focus_changed(main_d)
+        elif event == curses.KEY_DOWN:
+            focus = focus + 1 if focus < MENU_ITEMS - 1 else 0
+
+            main_d["focus"] = focus
+            focus_changed(main_d)
+        elif event == 10:
+            enter_key_triggered(main_d)
 
 curses.wrapper(main)

@@ -1,25 +1,32 @@
-def init(pid_dict, kp, ki, kd):
-    pid_dict["kp"] = kp
-    pid_dict["ki"] = ki
-    pid_dict["kd"] = kd
-    pid_dict["i"] = 0.0
-    pid_dict["d"] = 0.0
-    pid_dict["error_old"] = 0.0
-    pid_dict["output"] = 0.0
+DELTA_TIME = 0.02
 
 
-def update(pid_dict, target, current):
-    error = target - current
+def init(pid_d, kp, ki, kd):
+    pid_d["target"] = 0.0
+    pid_d["current"] = 0.0
+    pid_d["kp"] = kp
+    pid_d["ki"] = ki
+    pid_d["kd"] = kd
+    pid_d["i"] = 0.0
+    pid_d["d"] = 0.0
+    pid_d["error_old"] = 0.0
+    pid_d["output"] = 0.0
+
+
+def update(pid_d):
+    error = pid_d["target"] - pid_d["current"]
 
     # P controller
-    pid_dict["p"] = pid_dict["kp"] * error
+    pid_d["p"] = pid_d["kp"] * error
 
     # I controller
-    pid_dict["i"] = pid_dict["ki"] * (pid_dict["i"] + error)
+    pid_d["i"] += pid_d["ki"] * error * DELTA_TIME
 
     # D controller
-    pid_dict["d"] = pid_dict["kd"] * (error - pid_dict["error_old"])
+    pid_d["d"] = pid_d["kd"] * \
+        (error - pid_d["error_old"]) / DELTA_TIME
 
-    pid_dict["error_old"] = error
+    pid_d["error_old"] = error
 
-    pid_dict["output"] = pid_dict["p"] + pid_dict["i"] + pid_dict["d"]
+    pid_d["output"] = pid_d["p"] + \
+        pid_d["i"] + pid_d["d"]
