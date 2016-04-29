@@ -1,3 +1,15 @@
+/*
+--- PWM CONTROL ---
+PWM0: PIN34
+PWM1: PIN36
+PWM2: PIN38
+PWM3: PIN40
+PWM4: PIN9
+PWM5: PIN8
+PWM6: PIN7
+PWM7: PIN6
+*/
+
 #include "pwm_control.h"
 
 #define _BIT(bit) (0x1u << bit)
@@ -73,14 +85,14 @@ void init_pwm_controller()
   set_pwm_period(7, 256);
 
   //Duty cycle = (128 / 256) * 100 = 50%
-  set_pwm_duty(0, 128);
-  set_pwm_duty(1, 128);
-  set_pwm_duty(2, 128);
-  set_pwm_duty(3, 128);
-  set_pwm_duty(4, 128);
-  set_pwm_duty(5, 128);
-  set_pwm_duty(6, 128);
-  set_pwm_duty(7, 128);
+  set_pwm_duty(0, 0);
+  set_pwm_duty(1, 0);
+  set_pwm_duty(2, 0);
+  set_pwm_duty(3, 0);
+  set_pwm_duty(4, 0);
+  set_pwm_duty(5, 0);
+  set_pwm_duty(6, 0);
+  set_pwm_duty(7, 0);
 
   PWM->PWM_ENA = 0xff;
 }

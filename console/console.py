@@ -22,9 +22,12 @@ KD = 0.005
 def play_demo(main_d):
     i = 0
     while i < len(demo.notes) and main_d["running"]:
-        # arduino.play_note(main_d["arduino"], demo.notes[i], 127)
+        play_note(main_d, demo.notes[i], demo.velocities[i])
         time.sleep(demo.intervals[i])
         i += 1
+
+        if i == len(demo.notes) - 1:
+            i = 0
 
 
 def play_note(main_d, note, vel):
@@ -32,15 +35,15 @@ def play_note(main_d, note, vel):
     index = 0
 
     # Determine which string to tune and strike
-    for i, target in enumerate(main_d["pid"]):
-        if abs(note - target) < diff:
-            diff = abs(note - target)
+    for i, pid in enumerate(main_d["pid"]):
+        if abs(note - pid["current"]) < diff:
+            diff = abs(note - pid["current"])
             index = i
 
     main_d["pid"][index]["target"] = note
 
     # strike hammer
-    arduino.strike(index, vel)
+    arduino.strike(main_d["arduino"], index, vel)
 
 
 # ---------------
@@ -70,13 +73,13 @@ def init_pid_controllers(main_d):
 def run_controllers(main_d):
     while main_d["running"]:
         for i in range(0, 4):
-            main_d["pid"][i]["current"] = loadcell.get_value(i)
+            # main_d["pid"][i]["current"] = loadcell.get_value(i)
 
             pid.update(main_d["pid"][i])
 
-            arduino.set_pwm(main_d["arduino"], i, main_d["pid"][i]["output"])
+            # arduino.set_pwm(main_d["arduino"], i, main_d["pid"][i]["output"])
 
-        gfx.log(main_d["pid"][0]["current"])
+        # gfx.log(main_d["pid"][0]["current"])
 
         time.sleep(pid.DELTA_TIME)
 
@@ -144,7 +147,7 @@ def handle_key_event(main_d, key):
 
 def connect_triggered(main_d):
     connect_to_arduino(main_d)
-    connect_to_loadcell(main_d)
+    # connect_to_loadcell(main_d)
 
     threading.Thread(
         target=run_controllers, args=(main_d,)).start()
@@ -160,6 +163,7 @@ def test_triggered(main_d):
 
 def quit_triggered(main_d):
     main_d["running"] = False
+    arduino.close(main_d["arduino"])
 
 
 # -------------------
@@ -181,6 +185,10 @@ def main(stdscr):
     draw_menu(main_d)
 
     init_pid_controllers(main_d)
+    main_d["pid"][0]["current"] = 36
+    main_d["pid"][1]["current"] = 48
+    main_d["pid"][2]["current"] = 55
+    main_d["pid"][3]["current"] = 60
 
     while main_d["running"]:
         focus = main_d["focus"]

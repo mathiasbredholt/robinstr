@@ -1,20 +1,21 @@
-#include "Arduino.h"
 #include "pwm_control.h"
 
-int strings = {40,47,54,61} // init string tunings to E, B, F#, Db
+// int strings[4] = {40, 47, 54, 61}; // init string tunings to E, B, F#, Db
 
-int main()
-{
-    init();
-    Serial.begin(115200);
-
-    Serial.println("Welcome to ROBINSTR v0.1");
-
+void setup() {
+    SerialUSB.println("Welcome to ROBINSTR v0.1");
     init_pwm_controller();
+}
 
-    while (1)
-    {
-    	message = readmidi
+void loop() {
+    get_data();
+}
 
+void get_data()
+{
+    if (SerialUSB.available() > 1) {
+        char chan = SerialUSB.read();
+        char val = SerialUSB.read();
+        set_pwm_duty((int) chan, (int) val);
     }
 }
